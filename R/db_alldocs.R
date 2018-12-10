@@ -26,7 +26,7 @@
 #'
 #' # curl options
 #' res <- db_alldocs(x, dbname="leothelion", verbose = TRUE)
-#' 
+#'
 #' # write data to disk - useful when data is very large
 #' ## create omdb dataset first
 #' file <- system.file("examples/omdb.json", package = "sofa")
@@ -44,14 +44,22 @@
 #' }
 
 db_alldocs <- function(cushion, dbname, descending=NULL, startkey=NULL,
-  endkey=NULL, limit=NULL, include_docs=FALSE, as='list', 
+  endkey=NULL, keys=NULL, limit=NULL, include_docs=FALSE, as='list',
   disk = NULL, ...) {
 
   check_cushion(cushion)
   check_if(include_docs, "logical")
+
+  if (is.null(keys)) {
+    keysS <- NULL
+  } else {
+    keysS <- sprintf('["%s"]', paste(keys, collapse = '","'))
+  }
+
   args <- sc(list(
-    descending = descending, startkey = startkey, endkey = endkey,
+    descending = descending, startkey = startkey, endkey = endkey, keys = keysS,
     limit = limit, include_docs = asl(include_docs)))
+
   call_ <- sprintf("%s/%s/_all_docs", cushion$make_url(), dbname)
   if (is.null(disk)) {
     sofa_GET(call_, as, query = args, cushion$get_headers(),
