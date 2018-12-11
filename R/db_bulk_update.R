@@ -58,13 +58,17 @@ db_bulk_update_.default <- function(doc, cushion, dbname, docid = NULL,
 
 #' @export
 db_bulk_update_.data.frame <- function(doc, cushion, dbname, docid = NULL,
-                                   how = 'rows', as = 'list', ...) {
+                                   how = 'rows', as = 'list', disable_revision_lookup = FALSE, ...) {
   row.names(doc) <- NULL
   url <- sprintf("%s/%s", cushion$make_url(), dbname)
   each <- unname(parse_df(doc, how = how, tojson = FALSE))
-  info <- db_alldocs(cushion, dbname = dbname)
-  each <- Map(function(x, y) utils::modifyList(x, list(`_id` = y$id, `_rev` = y$value$rev)), each, info$rows)
+  if (!disable_revision_lookup) {
+    # Retrieves all revisions in the database so not scaleable.
+    info <- db_alldocs(cushion, dbname = dbname)
+    each <- Map(function(x, y) utils::modifyList(x, list(`_id` = y$id, `_rev` = y$value$rev)), each, info$rows)
+  }
   body <- jsonlite::toJSON(list(docs = each), auto_unbox = TRUE)
+
   sofa_bulk(file.path(url, "_bulk_docs"), as, body = body,
             cushion$get_headers(), cushion$get_auth(), ...)
 }
