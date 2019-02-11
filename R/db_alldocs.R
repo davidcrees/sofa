@@ -45,7 +45,7 @@
 
 db_alldocs <- function(cushion, dbname, descending=NULL, startkey=NULL,
   endkey=NULL, keys=NULL, limit=NULL, include_docs=FALSE, as='list',
-  disk = NULL, ...) {
+  disk = NULL, use_post=FALSE, ...) {
 
   check_cushion(cushion)
   check_if(include_docs, "logical")
@@ -56,14 +56,28 @@ db_alldocs <- function(cushion, dbname, descending=NULL, startkey=NULL,
     keysS <- sprintf('["%s"]', paste(keys, collapse = '","'))
   }
 
-  args <- sc(list(
-    descending = descending, startkey = startkey, endkey = endkey, keys = keysS,
-    limit = limit, include_docs = asl(include_docs)))
+  if (use_post) {
+    keysS <- sprintf('{ "keys": %s }', keysS)
+    args <- sc(list(
+      descending = descending, startkey = startkey, endkey = endkey,
+      limit = limit, include_docs = asl(include_docs)))
+
+  } else {
+    args <- sc(list(
+      descending = descending, startkey = startkey, endkey = endkey, keys = keysS,
+      limit = limit, include_docs = asl(include_docs)))
+  }
 
   call_ <- sprintf("%s/%s/_all_docs", cushion$make_url(), dbname)
   if (is.null(disk)) {
-    sofa_GET(call_, as, query = args, cushion$get_headers(),
-           cushion$get_auth(), ...)
+    if (use_post) {
+      sofa_POST(call_, as, query = args, body = keysS, cushion$get_headers(),
+               cushion$get_auth(), ...)
+
+    } else {
+      sofa_GET(call_, as, query = args, cushion$get_headers(),
+             cushion$get_auth(), ...)
+    }
   } else {
     sofa_GET_disk(call_, as, query = args, cushion$get_headers(),
            cushion$get_auth(), disk, ...)
